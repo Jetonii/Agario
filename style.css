@@ -1,0 +1,90 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    padding: 12px;
+}
+
+.game-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    background-color: #f0f0f0;
+}
+
+#player {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background-color: #3498db;
+    border-radius: 50%;
+    border: 2px solid #2980b9;
+    transition: width 0.2s, height 0.2s; 
+    z-index: 2;
+}
+
+.split-cell {
+    border: 2px solid #2980b9;
+    transition: width 0.2s, height 0.2s; 
+}
+
+#player, .split-cell {
+    transition: width 0.2s, height 0.2s; 
+}
+
+/* Enhance styling for the player element */
+#player, .split-cell {
+    background-color: #3498db;
+    border-radius: 50%;
+    border: 2px solid #2980b9;
+}
+
+/* Add styles for the food elements */
+.food {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #e74c3c;
+    border-radius: 50%;
+}
+
+
+/* Style the score element */
+#score {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-family: 'Arial', sans-serif;
+    font-size: 22px;
+    color: #222;
+}
+
+/* Enhance styling for the player element */
+#player, div[id^='subplayer'] {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: #3498db;
+    border-radius: 50%;
+    border: 2px solid #2980b9;
+    display: flex;
+    justify-content: center;
+    font-family: 'Arial', sans-serif;
+
+    align-items: center;
+}
+
+/* Styling for split cells */
+.split-cell {
+    border: 2px solid #2980b9;
+}
+
+
+@media screen and (max-width: 678px) {
+
+    #score {
+        top: 8px;
+        left: 8px;
+        font-size: 16px;
+    }
+    
+}
