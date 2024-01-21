@@ -2,24 +2,33 @@ document.addEventListener('DOMContentLoaded', function () {
     const gameContainer = document.querySelector('.game-container');
     const scoreElement = document.getElementById('score-value');
 
+    const settings = {
+        useConstantSpeed: true,
+        splittedPlayerDistannce: 220,
+        defaultOverlapTimer: 30,
+        playerColors: ['red', 'darkred', '#333', 'lightblue', 'purple', 'green', 'orange', '#923', '#219']
+    }
+
     let mouseX = 0;
     let mouseY = 0;
     let playerParts = [{ x: 0, y: 0 }];
     let thrownBalls = [];
-    let speed = 0.1; // Initial speed, adjust as needed
+    let speed = 0.5; // Initial speed, adjust as needed
     let score = 0;
-    let overlapCheckTimer = 30; // Time before which splitted part can't be joined
+    let overlapCheckTimer = settings.defaultOverlapTimer; // Time before which splitted part can't be joined
+    let timerInterval;
+  
 
     function startOverlapCheckTimer() {
-        setInterval(() => {
+        if (timerInterval) {
+            clearInterval(timerInterval)
+        }
+
+        overlapCheckTimer = settings.defaultOverlapTimer; // reset timer
+        timerInterval = setInterval(() => {
             overlapCheckTimer--;
-            if (overlapCheckTimer === 0) {
-                overlapCheckTimer = 30; // Reset the timer after checking for overlap
-            }
         }, 1000);
     }
-
-    startOverlapCheckTimer();
 
     gameContainer.addEventListener('mousemove', (e) => {
         mouseX = e.clientX - gameContainer.offsetLeft;
@@ -49,8 +58,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Calculate the angle between the player and the mouse
         const angle = Math.atan2(mouseY - playerY, mouseX - playerX);
 
-        // Calculate the starting position 120px away from the player in the direction of the mouse
-        const startOffset = 120;
+        // Calculate the starting position X px away from the player in the direction of the mouse
+        const startOffset = settings.splittedPlayerDistannce;
         const startX = playerX + startOffset * Math.cos(angle);
         const startY = playerY + startOffset * Math.sin(angle);
 
@@ -69,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function updatePlayerPosition() {
         var playerSize = parseFloat(document.getElementById('player').style.width);
         if (!isNaN(playerSize)) {
-            speed = 0.03 / playerSize * 2;
+            speed = 0.05 / playerSize * 2;
         }
 
         playerParts[0].x += (mouseX - playerParts[0].x) * speed;
@@ -90,12 +99,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
             let subplayer = document.getElementById(`subplayer-${i}`);
 
-            subplayer.style.left = playerParts[i].x + 'px';
-            subplayer.style.top = playerParts[i].y + 'px';
+            if (subplayer) {
+                subplayer.style.left = playerParts[i].x + 'px';
+                subplayer.style.top = playerParts[i].y + 'px';
+            }
         }
     }
 
     function checkCollision(player) {
+        if (!player) {
+            return;
+        }
         // Check collision with player and thrown balls
         for (let i = 0; i < thrownBalls.length; i++) {
             if (isColliding(thrownBalls[i].element, player)) {
@@ -128,28 +142,30 @@ document.addEventListener('DOMContentLoaded', function () {
         if (overlapCheckTimer === 0) {
             for (let i = 1; i < playerParts.length; i++) {
                 const subplayer = document.getElementById(`subplayer-${i}`);
-                if (isColliding(player, subplayer)) {
-                    // Calculate the area of overlap
-                    const overlapArea = calculateOverlapArea(player, subplayer);
+                if (subplayer) {
+                    if (isColliding(player, subplayer)) {
+                        // Calculate the area of overlap
+                        const overlapArea = calculateOverlapArea(player, subplayer);
 
-                    // Calculate the percentage of overlap
-                    const playerArea = parseFloat(player.style.width) * parseFloat(player.style.height);
-                    const subplayerArea = parseFloat(subplayer.style.width) * parseFloat(subplayer.style.height);
-                    const overlapPercentage = (overlapArea / Math.min(playerArea, subplayerArea)) * 100;
+                        // Calculate the percentage of overlap
+                        const playerArea = parseFloat(player.style.width) * parseFloat(player.style.height);
+                        const subplayerArea = parseFloat(subplayer.style.width) * parseFloat(subplayer.style.height);
+                        const overlapPercentage = (overlapArea / Math.min(playerArea, subplayerArea)) * 100;
 
-                    // Check if the overlap percentage is 90% or more for merging
-                    if (overlapPercentage >= 90) {
-                        // Merge logic: Increase the size of the player and remove the subplayer
-                        const subplayerSize = parseFloat(subplayer.style.width);
-                        const playerSize = parseFloat(player.style.width);
+                        // Check if the overlap percentage is 90% or more for merging
+                        if (overlapPercentage >= 90) {
+                            // Merge logic: Increase the size of the player and remove the subplayer
+                            const subplayerSize = parseFloat(subplayer.style.width);
+                            const playerSize = parseFloat(player.style.width);
 
-                        player.style.width = Math.sqrt(playerSize ** 2 + subplayerSize ** 2) + 'px';
-                        player.style.height = Math.sqrt(playerSize ** 2 + subplayerSize ** 2) + 'px';
+                            player.style.width = Math.sqrt(playerSize ** 2 + subplayerSize ** 2) + 'px';
+                            player.style.height = Math.sqrt(playerSize ** 2 + subplayerSize ** 2) + 'px';
 
-                        gameContainer.removeChild(subplayer);
-                        playerParts.splice(i, 1);
-
-                        updateScore(subplayerSize);
+                            gameContainer.removeChild(subplayer);
+                            playerParts.splice(i + 1, 1);
+                            console.log(playerParts)
+                            updateScore(subplayerSize);
+                        }
                     }
                 }
             }
@@ -184,33 +200,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     function splitPlayer() {
-        const playerSize = parseFloat(document.getElementById('player').style.width);
+        const player = document.getElementById('player');
+
+        const playerSize = parseFloat(player.style.width);
         if (playerSize >= 50) {
-            const newCell = document.createElement('div');
+            const subplayer = document.createElement('div');
             const index = playerParts.length;
 
-            newCell.id = `subplayer-${index}`;
-            newCell.className = 'subplayer';
-            newCell.style.width = Math.floor(playerSize / 1.5) + 'px';
-            newCell.style.height = Math.floor(playerSize / 1.5) + 'px';
-            newCell.style.position = 'absolute';
-
-            gameContainer.appendChild(newCell);
+            subplayer.id = `subplayer-${index}`;
+            subplayer.className = 'subplayer';
+            subplayer.style.width = Math.floor(playerSize / 1.5) + 'px';
+            subplayer.style.height = Math.floor(playerSize / 1.5) + 'px';
+            subplayer.style.position = 'absolute';
+            subplayer.style.backgroundColor = player.style.backgroundColor;
+            gameContainer.appendChild(subplayer);
 
             const playerX = playerParts[0].x;
             const playerY = playerParts[0].y;
 
             const angle = Math.atan2(mouseY - playerY, mouseX - playerX);
 
-            // Calculate the starting position 120px away from the player in the direction of the mouse
-            const startOffset = 120;
+            // Calculate the starting position X px away from the player in the direction of the mouse
+            const startOffset = settings.splittedPlayerDistannce;
             const startX = playerX + startOffset * Math.cos(angle);
             const startY = playerY + startOffset * Math.sin(angle);
             playerParts[index] = { x: startX, y: startY };
 
-            document.getElementById('player').style.width = (playerSize - 10) + 'px';
-            document.getElementById('player').style.height = (playerSize - 10) + 'px';
+            player.style.width = (playerSize - 10) + 'px';
+            player.style.height = (playerSize - 10) + 'px';
 
+            startOverlapCheckTimer();
             updateScore(-20);
         }
     }
@@ -227,8 +246,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function updateScore(points) {
-        score += points;
-        scoreElement.textContent = score;
+        score += Math.floor(points);
+        scoreElement.textContent = score + '->' + overlapCheckTimer;
     }
 
     function animate() {
@@ -250,4 +269,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     // Start the animation loop
     animate();
+
+    function setPlayerColor() {
+        const player = document.getElementById(`player`);
+        player.style.backgroundColor = settings.playerColors[Math.floor(Math.random() * settings.playerColors.length)]
+    }
+    setPlayerColor()
 });
